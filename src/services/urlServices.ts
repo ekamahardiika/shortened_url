@@ -1,58 +1,72 @@
-import { ur } from 'zod/v4/locales';
-import { prisma } from '../utils/prisma';
-import { nanoid } from 'nanoid';
+import { ur } from "zod/v4/locales";
+import { prisma } from "../utils/prisma";
+import { nanoid } from "nanoid";
 
-async function createShortUrl(originalUrl: string, userId: string){
-    const shortCode = nanoid(6);
-    
-    const newUrl = await prisma.url.create({
-        data: {
-            originalUrl,
-            shortCode,
-            userId
-        }
-    })
+async function createShortUrl(
+  originalUrl: string,
+  userId: string,
+  customCode?: string,
+) {
+  let shortCode = customCode;
 
-    return newUrl;
-}
+  // kalau tidak ada custom → generate
+  if (!shortCode) {
+    shortCode = nanoid(6);
+  } else {
+    // cek apakah sudah dipakai
+    const existing = await prisma.url.findUnique({
+      where: { shortCode },
+    });
 
-async function getUrlByCode(code: string){
-    const url = await prisma.url.findUnique({
-        where: {
-            shortCode: code
-        }
-    })
-
-    if(!url){
-        return null
+    if (existing) {
+      throw new Error("SHORTCODE_EXISTS");
     }
+  }
 
-    await prisma.url.update({
-        where: {
-            id: url.id
-        },
-        data: {
-            clicks: {
-                increment: 1
-            }
-        }
-    })
+  const newUrl = await prisma.url.create({
+    data: {
+      originalUrl,
+      shortCode,
+      userId,
+    },
+  });
 
-    return url;
+  return newUrl;
 }
 
-async function getUrlAnalytics(code: string){
-    const url = await prisma.url.findUnique({
-        where: {
-            shortCode: code
-        }
-    })
+async function getUrlByCode(code: string) {
+  const url = await prisma.url.findUnique({
+    where: {
+      shortCode: code,
+    },
+  });
 
-    return url;
+  if (!url) {
+    return null;
+  }
+
+  await prisma.url.update({
+    where: {
+      id: url.id,
+    },
+    data: {
+      clicks: {
+        increment: 1,
+      },
+    },
+  });
+
+  return url;
 }
 
-export { 
-    createShortUrl,
-    getUrlByCode,
-    getUrlAnalytics
- }
+async function getUrlAnalytics(code: string) {
+  const url = await prisma.url.findUnique({
+    where: {
+      shortCode: code,
+    },
+  });
+
+  return url;
+}
+
+export { createShortUrl, getUrlByCode, getUrlAnalytics };

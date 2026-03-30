@@ -8,7 +8,7 @@ import {
 
 async function shortUrlController(req: Request, res: Response) {
   try {
-    const { url } = req.body;
+    const { url, customCode } = req.body;
     const userId = (req as any).user.id;  
 
     if (!url) {
@@ -19,12 +19,19 @@ async function shortUrlController(req: Request, res: Response) {
       return res.status(400).json({ error: "Invalid URL" });
     }
 
-    const result = await createShortUrl(url, userId);
+    const result = await createShortUrl(url, userId, customCode);
 
     return res.json({
       short_url: `http://localhost:1099/${result.shortCode}`,
     });
-  } catch (error) {
+  } catch (error: any) {
+
+    if (error.message === "SHORTCODE_EXISTS") {
+      return res.status(400).json({
+        message: "Custom URL already in use",
+      });
+    }
+
     return res.status(500).json({ message: "Internal server error" });
   }
 }
