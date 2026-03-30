@@ -67,7 +67,16 @@ async function loginUser({email, password}: LoginInput){
 
 
 async function getCurrentUser(user: any){
-    return user;
+    const myUrls = await prisma.url.findMany({
+        where: { userId: user.userId },
+            orderBy: {
+            createdAt: "desc",
+        },
+    })
+    return {
+        user: user,
+        url: myUrls
+    };
 }
 
 export { registerUser, loginUser, getCurrentUser }
